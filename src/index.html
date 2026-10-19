@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GeoHesap — Sığ Temel Geoteknik Hesap</title>
+<style>/*CSS*/</style>
+</head>
+<body>
+<header>
+  <div class="logo">GeoHesap<small>TBDY 2018 · Tebliğ 2019</small></div>
+  <div id="pname"></div>
+  <button id="bNew" title="Boş proje">Yeni</button>
+  <button id="bOpen" title="Kaydedilmiş .json projesini aç">Aç</button>
+  <button id="bSave" title="Projeyi .json olarak indir">Kaydet</button>
+  <button id="bEx" title="Sentetik örnek projeyi yükle">Sentetik Örnek</button>
+  <button id="bPrint" title="Bu sayfayı yazdır / PDF">Yazdır</button>
+  <button id="bDocx" class="pri" title="Word raporu oluştur">Word raporu</button>
+</header>
+<div class="wrap">
+  <nav><ul id="nav"></ul></nav>
+  <main id="main">
+    <h2 id="ptitle"></h2>
+    <div class="legend"><span><i style="background:#eaf2fb;border:1px solid #9ec1e6"></i>girdi</span><span><i style="background:#fdf0e3;border:1px solid #e7b07a"></i>tasarım kararı / varsayılanı ezer</span><span><i style="background:#f3f7fb;border-left:4px solid #2e75b6"></i>hesap adımı (formül → sayılar → kaynak)</span></div>
+    <div id="err"></div>
+    <section id="inputs"></section>
+    <section id="outputs"></section>
+  </main>
+  <aside id="side"></aside>
+</div>
+<script>/*JS*/</script>
+</body>
+</html>

@@ -1,0 +1,104 @@
+{
+  "proj": {
+    "name": "Sentetik Örnek Proje",
+    "reportNo": "ORNEK-001",
+    "date": "",
+    "owner": "ÖRNEK YAPI",
+    "il": "Örnek İl",
+    "ilce": "Örnek İlçe",
+    "mahalle": "Örnek Mahalle",
+    "mevki": "",
+    "nitelik": "Arsa",
+    "pafta": "",
+    "ada": "",
+    "parsel": "",
+    "parselArea": 500,
+    "slope": "0-2",
+    "lat": "",
+    "lon": "",
+    "faultDist": "",
+    "storeys": "Zemin + 1 Normal Kat",
+    "nFloors": 2,
+    "usage": "Konut",
+    "system": "Betonarme",
+    "HN": 6,
+    "footprint": 200,
+    "totalArea": 400,
+    "foundLevel": -1.5,
+    "bks": 3,
+    "location": "Örnek İl / Örnek İlçe",
+    "engineer": ""
+  },
+  "coords": [],
+  "team": {
+    "geo": { "name": "", "sicil": "", "tc": "" },
+    "jeo": { "name": "", "sicil": "", "tc": "" },
+    "jfz": { "name": "", "sicil": "", "tc": "" },
+    "dataJeo": "",
+    "dataJfz": "",
+    "statik": "",
+    "mimari": ""
+  },
+  "etut": {
+    "cat": "Kategori 2",
+    "date": "",
+    "depths": "15,00 - 15,00 - 15,00",
+    "nSpt": 9,
+    "hydro": 0,
+    "wn": 3,
+    "gn": 3,
+    "gs": 3,
+    "sieve": 3,
+    "atterberg": 3,
+    "shear": 3,
+    "ucs": 0,
+    "uu": 0,
+    "oedo": 3,
+    "masw": 1
+  },
+  "site": { "yass": 12, "gw": 9.81, "nBore": 3, "boreDepth": 15, "rock3m": false, "loose": false },
+  "layers": [
+    { "top": 0, "bottom": 3, "uscs": "SM", "desc": "Siltli kum (sentetik)", "beh": "Kohezyonsuz", "gn": 18, "gsat": 19, "phi": 30, "c": 0, "cu": 0, "Es": 20, "nu": 0.3, "mv": 0, "Cc": 0, "e0": 0.6, "pi": 0, "fines": 20 },
+    { "top": 3, "bottom": 8, "uscs": "CL", "desc": "Düşük plastisiteli kil (sentetik)", "beh": "Kohezyonlu", "gn": 19, "gsat": 20, "phi": 24, "c": 8, "cu": 75, "Es": 30, "nu": 0.35, "mv": 0.00008, "Cc": 0.18, "e0": 0.7, "pi": 18, "fines": 65 },
+    { "top": 8, "bottom": 40, "uscs": "SC", "desc": "Killi kum (sentetik)", "beh": "Kohezyonsuz", "gn": 19.5, "gsat": 20.5, "phi": 32, "c": 2, "cu": 0, "Es": 45, "nu": 0.3, "mv": 0, "Cc": 0, "e0": 0.55, "pi": 10, "fines": 30 }
+  ],
+  "spt": {
+    "equip": { "CE": 1, "CB": 1, "CS": 1, "rodExtra": 1 },
+    "data": [
+      { "z": 1.5, "N": 14 }, { "z": 3, "N": 18 }, { "z": 4.5, "N": 22 },
+      { "z": 6, "N": 26 }, { "z": 7.5, "N": 30 }, { "z": 9, "N": 34 },
+      { "z": 10.5, "N": 38 }, { "z": 12, "N": 42 }, { "z": 13.5, "N": 46 }
+    ]
+  },
+  "vs": [
+    { "top": 0, "bottom": 5, "vs": 280 },
+    { "top": 5, "bottom": 10, "vs": 340 },
+    { "top": 10, "bottom": 20, "vs": 410 },
+    { "top": 20, "bottom": 30, "vs": 480 }
+  ],
+  "seis": {
+    "Ss": 1,
+    "S1": 0.4,
+    "PGA": 0.4,
+    "PGV": 20,
+    "zsOverride": "",
+    "dd": [
+      { "name": "DD-1", "Ss": 1.5, "S1": 0.6, "PGA": 0.6, "PGV": 30 },
+      { "name": "DD-3", "Ss": 0.5, "S1": 0.2, "PGA": 0.2, "PGV": 10 },
+      { "name": "DD-4", "Ss": 0.3, "S1": 0.1, "PGA": 0.1, "PGV": 5 }
+    ]
+  },
+  "found": { "type": "Radye", "B": 10, "L": 20, "Df": 1.5, "t": 0.6 },
+  "loads": {
+    "Nserv": 8000,
+    "combos": [
+      { "name": "1.4G+1.6Q", "seismic": "Hayır", "N": 11000, "MB": 0, "ML": 0, "HB": 0, "HL": 0 },
+      { "name": "G+Q+E", "seismic": "Evet", "N": 8000, "MB": 600, "ML": 900, "HB": 200, "HL": 300 },
+      { "name": "0.9G+E", "seismic": "Evet", "N": 6000, "MB": 500, "ML": 700, "HB": 180, "HL": 240 }
+    ]
+  },
+  "bear": { "type": "Drenajlı", "phi": 30, "c": 0, "cu": "" },
+  "slide": { "tand": 0.5, "usePassive": false },
+  "sett": { "zmaxFactor": 3, "rig": 1, "allow": 50, "tYear": 50 },
+  "swell": { "zone": 3 }
+}

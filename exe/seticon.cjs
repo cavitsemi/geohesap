@@ -1,0 +1,14 @@
+const ResEdit = require('resedit'), PE = require('pe-library'), fs = require('fs');
+const [,, exeIn, ico, exeOut, ver] = process.argv;
+const exe = PE.NtExecutable.from(fs.readFileSync(exeIn), { ignoreCert: true });
+const res = PE.NtExecutableResource.from(exe);
+const iconFile = ResEdit.Data.IconFile.from(fs.readFileSync(ico));
+ResEdit.Resource.IconGroupEntry.replaceIconsForResource(res.entries, 1, 1033, iconFile.icons.map(i => i.data));
+const vi = ResEdit.Resource.VersionInfo.createEmpty();
+const [a, b, c] = ver.split('.').map(Number);
+vi.setFileVersion(a, b, c, 0, 1033); vi.setProductVersion(a, b, c, 0, 1033);
+vi.setStringValues({ lang: 1033, codepage: 1200 }, { FileDescription: 'GeoHesap - Sığ Temel Geoteknik Hesap', ProductName: 'GeoHesap', CompanyName: 'Cavit', LegalCopyright: '© 2026', OriginalFilename: 'GeoHesap.exe', FileVersion: ver, ProductVersion: ver });
+vi.outputToResourceEntries(res.entries);
+res.outputResource(exe);
+fs.writeFileSync(exeOut, Buffer.from(exe.generate()));
+console.log('ok', exeOut);

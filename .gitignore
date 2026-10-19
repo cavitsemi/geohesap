@@ -1,0 +1,9 @@
+dist/
+*.exe
+exe/app.html
+node_modules/
+__pycache__/
+*.docx
+*.pdf
+.DS_Store
+Thumbs.db
