@@ -1,5 +1,7 @@
 # GeoHesap exe derleme
 
+Bu belge yalnızca geliştiriciler içindir. Releases sayfasından indirilen `GeoHesap_Kurulum_x.y.z.exe` ve `GeoHesap_tasinabilir.exe` dosyalarını çalıştırmak için Python, Node.js veya Go kurulması gerekmez.
+
 1. `kaynak\build.py` ile `GeoHesap.html` üret.
 2. `GeoHesap.html` dosyasını bu klasöre `app.html` adıyla kopyala.
 3. Windows için derle (Go 1.22+):
