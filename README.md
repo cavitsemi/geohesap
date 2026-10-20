@@ -2,6 +2,12 @@
 
 GeoHesap, TBDY 2018 Bölüm 16 ve Zemin ve Temel Etüdü Uygulama Esasları ve Rapor Formatına Dair Tebliğ (2019) kapsamında sığ temel hesaplarını yapmak ve Word raporu üretmek için geliştirilmiş çevrimdışı bir masaüstü uygulamasıdır.
 
+## Tek dosya — indir ve çalıştır
+
+**[GeoHesap.exe dosyasını indir](https://github.com/cavitsemi/geohesap/releases/latest/download/GeoHesap.exe)**
+
+İnen `GeoHesap.exe` dosyasına çift tıklayın. Kurulum, ZIP açma veya Python yükleme gerekmez. GitHub'ın gösterdiği **Source code (zip)** ve **Source code (tar.gz)** bağlantıları geliştiriciler içindir; programı kullanmak için onları indirmeyin.
+
 ## Son kullanıcı gereksinimleri
 
 - Windows 10 veya Windows 11
@@ -35,7 +41,7 @@ Derleme sonunda `dist/GeoHesap.html` üretilir. Windows uygulaması ve kurulum p
 
 ## Kurulum
 
-Hazır kurulum paketi GitHub deposunun **Releases** bölümündeki `GeoHesap_Kurulum_x.y.z.exe` dosyasından indirilebilir. Kurulum yapmak istemeyenler `GeoHesap_tasinabilir.exe` dosyasını doğrudan çalıştırabilir.
+Hazır uygulama GitHub deposunun **Releases** bölümündeki `GeoHesap.exe` dosyasından indirilebilir ve doğrudan çalıştırılabilir.
 
 ## Örnek veri
 
