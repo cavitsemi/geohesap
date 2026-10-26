@@ -118,9 +118,9 @@
     // ================= 6. İDEALİZE PROFİL =================
     D.h1('6. İDEALİZE ZEMİN PROFİLLERİ (ARAZİ ZEMİN MODELİ) VE YERALTI SUYU DURUMLARI');
     await img(GDRAW.soilColumn(P, R, { w: 700, h: 560 }), 15, 'İdealize zemin kesiti');
-    await img(GDRAW.legend([...new Set(P.layers.map(l => l.uscs))]), 13, 'Tarama lejantı (USCS)');
+    await img(GDRAW.legend(P.layers), 15, 'Tarama lejantı (Tebliğ 2019 EK-6, TS ISO 710)');
     D.sub('TABAKA BİLGİLERİ');
-    D.table([['No', 'Adı', 'Kalınlığı [m]', 'Derinliği [m]', 'Zemin Tanımı'], ...P.layers.map((L, i) => [i + 1, `${L.uscs} (${n(L.top)}-${n(L.bottom)} m)`, n(L.bottom - L.top), n(L.bottom), L.desc || GDRAW.NAME[L.uscs] || ''])], { widths: [0.6, 2.4, 1.3, 1.3, 3.2], align: ['center', null, 'center', 'center', null] });
+    D.table([['No', 'Adı', 'Kalınlığı [m]', 'Derinliği [m]', 'Zemin Tanımı'], ...P.layers.map((L, i) => [i + 1, `${GSOIL.label(L)} (${n(L.top)}-${n(L.bottom)} m)`, n(L.bottom - L.top), n(L.bottom), L.desc || GSOIL.nameOf(L) || ''])], { widths: [0.6, 2.4, 1.3, 1.3, 3.2], align: ['center', null, 'center', 'center', null] });
     D.p(P.site.yass >= 50 ? 'Sondajlarda yeraltı suyuna rastlanmamıştır. Hesaplarda yeraltı suyu etkisi dikkate alınmamıştır.' : `Yeraltı su seviyesi: ${n(P.site.yass)} [m]. Hesaplarda bu seviyenin altında efektif gerilmeler kullanılmıştır.`);
 
     // ================= 7. TASARIM PARAMETRELERİ =================
@@ -128,14 +128,17 @@
     D.sub('SEÇİLEN KARAKTERİSTİK GEOTEKNİK TASARIM PARAMETRELERİ');
     D.sub('Genel Zemin Parametreleri');
     D.table([['No', 'Zemin Adı', 'Gerilme Durumu', 'γ<sub>n</sub> [kN/m³]', 'γ<sub>doy</sub> [kN/m³]', "φ' [°]", "c' [kN/m²]", 'c<sub>u</sub> [kN/m²]'],
-      ...P.layers.map((L, i) => [i + 1, `${L.uscs} (${n(L.top)}-${n(L.bottom)} m)`, L.beh === 'Kohezyonlu' ? 'Toplam / Efektif' : L.beh === 'Kaya' ? 'Kaya' : 'Efektif (Drenajlı)', n(L.gn), n(L.gsat), n(L.phi, 0), n(L.c, 0), L.cu ? n(L.cu, 0) : '–'])],
+      ...P.layers.map((L, i) => [i + 1, `${GSOIL.label(L)} (${n(L.top)}-${n(L.bottom)} m)`, L.beh === 'Kohezyonlu' ? 'Toplam / Efektif' : L.beh === 'Kaya' ? 'Kaya' : 'Efektif (Drenajlı)', n(L.gn), n(L.gsat), n(L.phi, 0), n(L.c, 0), L.cu ? n(L.cu, 0) : '–'])],
       { widths: [0.5, 2.2, 1.6, 1, 1, 0.8, 0.9, 0.9], align: ['center', null, 'center', 'center', 'center', 'center', 'center', 'center'], small: true });
     D.legend([["φ'", 'İçsel sürtünme açısı [°]'], ["c'", 'Kohezyon [kN/m²]'], ['c<sub>u</sub>', 'Drenajsız kayma dayanımı [kN/m²]'], ['γ<sub>n</sub>', 'Doğal birim hacim ağırlık [kN/m³]'], ['γ<sub>doy</sub>', 'Suya doygun birim hacim ağırlık [kN/m³]']]);
     D.sub('Oturma Parametreleri');
     D.table([['No', 'Zemin Adı', 'E<sub>s</sub> [MPa]', 'ν [-]', 'm<sub>v</sub> [m²/kN]', 'C<sub>c</sub> [-]', 'e<sub>0</sub> [-]', 'PI [%]'],
-      ...P.layers.map((L, i) => [i + 1, `${L.uscs} (${n(L.top)}-${n(L.bottom)} m)`, n(L.Es, 1), n(L.nu), L.mv ? Number(L.mv).toExponential(2).replace('.', ',') : '–', L.Cc ? n(L.Cc, 3) : '–', n(L.e0), L.pi ? n(L.pi, 1) : '–'])],
+      ...P.layers.map((L, i) => [i + 1, `${GSOIL.label(L)} (${n(L.top)}-${n(L.bottom)} m)`, n(L.Es, 1), n(L.nu), L.mv ? Number(L.mv).toExponential(2).replace('.', ',') : '–', L.Cc ? n(L.Cc, 3) : '–', n(L.e0), L.pi ? n(L.pi, 1) : '–'])],
       { widths: [0.5, 2.2, 1, 0.8, 1.3, 0.8, 0.8, 0.8], align: ['center', null, 'center', 'center', 'center', 'center', 'center', 'center'], small: true });
     D.note('E<sub>s</sub>: statik (drenajlı) elastisite modülü. Jeofizik ölçümlerden elde edilen dinamik modül oturma hesabında kullanılmamıştır.');
+    { const NM = { gn: 'γn', gsat: 'γdoy', phi: "φ'", c: "c'", cu: 'cu', Es: 'Es', nu: 'ν', mv: 'mv', Cc: 'Cc', e0: 'e0', pi: 'PI', fines: 'İDO' };
+      const tl = P.layers.map((L, i) => Array.isArray(L.tip) && L.tip.length ? `${i + 1} no'lu tabaka (${L.tip.map(k => NM[k] || k).join(', ')})` : null).filter(Boolean);
+      if (tl.length) D.note('Tipik değer kullanılan parametreler: ' + tl.join('; ') + '. Bu değerler zemin türü ve Tebliğ (2019) EK-5 sıkılık / kıvam / ayrışma sınıfına göre literatürdeki tipik aralıklardan (Peck vd. 1974; Terzaghi ve Peck 1967; Bowles 1996; Carter ve Bentley 1991; Hoek ve Brown 1997) alınmış ön tahminlerdir ve arazi / laboratuvar deney sonuçlarıyla doğrulanmalıdır.'); }
 
     D.h2('7.1. SPT Düzeltmeleri');
     D.table([['Simge', 'Açıklama', 'Formül', 'Madde'],
@@ -239,7 +242,7 @@
     const byL = {}; S.prof.forEach(p => { const k = p.li; byL[k] = byL[k] || { li: k, z1: p.zb, z2: p.zb, ds: 0, n: 0, el: 0, co: 0 }; const o = byL[k]; o.z2 = p.zb; o.ds += p.ds; o.n++; o.el += p.el * P.sett.rig; o.co += p.co * P.sett.rig; });
     const dzh = S.zmax / S.prof.length / 2;
     D.table([['No', 'Tabaka', 'Derinlik (tabandan) [m]', 'Δσ<sub>ort</sub> [kN/m²]', 'E<sub>s</sub> [MPa]', 'S<sub>e</sub> [mm]', 'S<sub>c</sub> [mm]'],
-      ...Object.values(byL).map((o, i) => { const L = P.layers[o.li]; return [i + 1, `${L.uscs} (${n(L.top)}-${n(L.bottom)} m)`, `${n(o.z1 - dzh)} – ${n(o.z2 + dzh)}`, n(o.ds / o.n, 1), n(L.Es, 1), n(o.el), n(o.co)]; }),
+      ...Object.values(byL).map((o, i) => { const L = P.layers[o.li]; return [i + 1, `${GSOIL.label(L)} (${n(L.top)}-${n(L.bottom)} m)`, `${n(o.z1 - dzh)} – ${n(o.z2 + dzh)}`, n(o.ds / o.n, 1), n(L.Es, 1), n(o.el), n(o.co)]; }),
       [{ v: 'Toplam', span: 5, b: true, align: 'right' }, { v: n(S.Sel), b: true }, { v: n(S.Scon), b: true }]],
       { title: 'Tabakalara Göre Oturma', widths: [0.5, 2.2, 1.8, 1.3, 1, 1, 1], align: ['center', null, 'center', 'center', 'center', 'center', 'center'], small: true });
     D.eq('S<sub>e</sub> = Σ Δσ<sub>i</sub>·Δz<sub>i</sub> / E<sub>s,i</sub>        S<sub>c</sub> = Σ m<sub>v,i</sub>·Δσ<sub>i</sub>·Δz<sub>i</sub>');
@@ -313,7 +316,7 @@
 
     // ================= 11. SONUÇ =================
     D.h1('11. SONUÇ VE ÖNERİLER');
-    const lays = P.layers.map(L => `${n(L.top)}–${n(L.bottom)} m arasında ${(L.desc || GDRAW.NAME[L.uscs] || L.uscs).toLocaleLowerCase('tr-TR')} (${L.uscs})`).join(', ');
+    const lays = P.layers.map(L => `${n(L.top)}–${n(L.bottom)} m arasında ${(L.desc || GSOIL.nameOf(L) || L.uscs).toLocaleLowerCase('tr-TR')} (${GSOIL.label(L)})`).join(', ');
     D.bullet(`İnceleme alanında yapılan sondajlarda zemin profili ${lays} şeklinde idealize edilmiştir.`);
     D.bullet(!R.liq.needed ? `${P.site.yass >= 50 ? 'Sondajlarda yeraltı suyuna rastlanmamıştır' : `Yeraltı su seviyesi ${n(P.site.yass)} m'dir`}; mevcut ölçümlere göre TBDY 16.6.2 kapsamında sıvılaşma değerlendirmesi gerektiren koşul bulunmamaktadır.` : `Yeraltı su seviyesi ${n(P.site.yass)} m'dir; ${R.liq.layers.join(', ')} tabakaları için sıvılaşma değerlendirmesi ayrıca yapılmalıdır.`);
     D.bullet(`Yerel zemin sınıfı <b>${R.zs}</b>'dir (V<sub>s</sub>(30) = ${n(R.vs30, 0)} m/sn${R.spt.N30 ? `, (N<sub>60</sub>)<sub>30</sub> = ${n(R.spt.N30, 1)}` : ''}).`);

@@ -79,3 +79,13 @@ button.big{background:var(--pri);color:#fff;border:none;border-radius:8px;paddin
 @media print{header,nav,#side,button,.add,.x{display:none!important}.wrap{display:block;padding:0}.card{break-inside:avoid;border:none}}
 
 .block{background:#fdecea;border:1px solid #e6a19a;border-radius:8px;padding:8px 10px;margin-bottom:10px;color:#922b21;font-size:12.5px}.block ul{margin:4px 0 0;padding-left:16px}
+input.in[data-typ]{background:#fff6cf;border-color:#e6c75a}
+.typ{background:#fff6cf;border:1px solid #e6c75a;padding:0 4px;border-radius:3px}
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(140%);background:#0b2a4a;color:#fff;padding:10px 14px;border-radius:8px;font-size:13px;display:flex;gap:12px;align-items:center;box-shadow:0 6px 24px rgba(0,0,0,.25);transition:transform .25s;z-index:50;max-width:90vw}
+#toast.show{transform:translateX(-50%) translateY(0)}
+#toast button{background:#ffd54f;border:0;border-radius:5px;padding:4px 10px;font:inherit;font-weight:600;cursor:pointer}
+.libhead{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:6px 0}
+.libhead select{max-width:340px}
+.libhead svg{flex:none}
+ul.src{font-size:12px;color:#444;padding-left:18px}
+@media print{#toast{display:none}}

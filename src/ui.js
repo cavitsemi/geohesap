@@ -10,7 +10,7 @@
   const BLANK = () => {
     const p = clone(GEO_EXAMPLE);
     p.proj = { name: 'Yeni proje', owner: '', location: '', ada: '', parsel: '', engineer: '', date: '', HN: 10, bks: 3, usage: 'Konut' };
-    p.layers = [{ top: 0, bottom: 3, uscs: 'CL', desc: '', beh: 'Kohezyonlu', gn: 19, gsat: 20, phi: 25, c: 10, cu: 80, Es: 15, nu: 0.35, mv: 1e-4, Cc: 0, e0: 0.7, pi: 20, fines: 70 }, { top: 3, bottom: 30, uscs: 'SM', desc: '', beh: 'Kohezyonsuz', gn: 19, gsat: 20, phi: 32, c: 0, cu: 0, Es: 30, nu: 0.3, mv: 0, Cc: 0, e0: 0.6, pi: 0, fines: 20 }];
+    p.layers = [GSOIL.apply({ top: 0, bottom: 3, zt: 'kil_cl', durum: '' }), GSOIL.apply({ top: 3, bottom: 30, zt: 'siltli_kum', durum: '' })];
     p.spt.data = [{ z: 1.5, N: 12 }]; p.vs = [{ top: 0, bottom: 30, vs: 300 }];
     p.seis = { Ss: 0.5, S1: 0.15, PGA: 0.2, PGV: 10, zsOverride: '' };
     p.found = { type: 'Radye', B: 10, L: 15, Df: 1.0, t: 0.6 };
@@ -27,6 +27,7 @@
     ['proj', 'team', 'etut'].forEach(k => { if (tpl[k] && typeof tpl[k] === 'object') Object.keys(tpl[k]).forEach(j => { if (typeof tpl[k][j] === 'string' || typeof tpl[k][j] === 'number') tpl[k][j] = (k === 'proj' && ['HN', 'bks', 'nFloors'].includes(j)) ? tpl[k][j] : (typeof tpl[k][j] === 'number' ? 0 : ''); }); });
     tpl.coords = []; tpl.seis.dd = [];
     fillIn(p, tpl);
+    (p.layers || []).forEach(Lr => { if (!Lr.zt || !GSOIL.BY[Lr.zt]) Lr.zt = GSOIL.keyOf(Lr); if (Lr.durum == null) Lr.durum = ''; if (!Array.isArray(Lr.tip)) Lr.tip = []; });
     (p.loads.combos || []).forEach(c => { if (c.seismic == null || c.seismic === '') c.seismic = /(^|[^A-Za-z])E([^A-Za-z]|$)|deprem|sismik/i.test(c.name || '') ? 'Evet' : 'Hayır'; });
     return p;
   }
@@ -68,8 +69,9 @@
     rows.forEach((row, i) => {
       h += '<tr>' + cols.map(c => {
         const v = row[c.k];
+        if (c.sel) return `<td><select class="in" style="${c.w ? 'width:' + c.w + 'px' : ''}" data-p="${key}.${i}.${c.k}">${c.sel(row)}</select></td>`;
         if (c.opts) return `<td><select class="in" data-p="${key}.${i}.${c.k}">${c.opts.map(x => `<option ${x === v ? 'selected' : ''}>${x}</option>`).join('')}</select></td>`;
-        return `<td><input class="in" style="width:${c.w || 56}px" data-p="${key}.${i}.${c.k}" ${c.text ? '' : 'data-num="1" inputmode="decimal"'} value="${v == null ? '' : v}"></td>`;
+        return `<td><input class="in" style="width:${c.w || 56}px" data-p="${key}.${i}.${c.k}" ${c.text ? '' : 'data-num="1" inputmode="decimal"'} value="${v == null ? '' : v}"${Array.isArray(row.tip) && row.tip.includes(c.k) ? ' data-typ="1" title="Tipik değer (kütüphaneden) — deney sonucuyla değiştirin"' : ''}></td>`;
       }).join('') + `<td><button class="x" data-del="${key}" data-i="${i}" title="Satırı sil">×</button></td></tr>`;
     });
     h += `</tbody></table></div><button class="add" data-add="${key}">+ satır ekle</button>`;
@@ -98,11 +100,32 @@
 
   // ---------- sayfa içerikleri ----------
   const LAYER_COLS = [
-    { k: 'top', l: 'Üst', u: 'm', w: 46 }, { k: 'bottom', l: 'Alt', u: 'm', w: 46 }, { k: 'uscs', l: 'USCS', opts: GDRAW.USCS }, { k: 'desc', l: 'Tanım', text: true, w: 130 },
+    { k: 'top', l: 'Üst', u: 'm', w: 46 }, { k: 'bottom', l: 'Alt', u: 'm', w: 46 }, { k: 'zt', l: 'Zemin / kaya türü', w: 178, sel: row => { const cur = GSOIL.keyOf(row); return GSOIL.GROUPS.map(g => `<optgroup label="${g}">${GSOIL.LIST.filter(e => e.grp === g).map(e => `<option value="${e.key}" ${e.key === cur ? 'selected' : ''}>${e.ad} (${e.code})</option>`).join('')}</optgroup>`).join(''); } },
+    { k: 'durum', l: 'Sıkılık / kıvam / ayrışma', w: 150, tip: 'Tebliğ (2019) EK-5 sınıfları (SPT N). Seçilince tipik parametreler yüklenir.', sel: row => { const st = GSOIL.statesFor(GSOIL.keyOf(row)); return `<option value="" ${st.includes(row.durum) ? '' : 'selected'}>— seçin —</option>` + st.map(x => `<option ${x === row.durum ? 'selected' : ''}>${x}</option>`).join(''); } },
+    { k: 'uscs', l: 'USCS', opts: GDRAW.USCS }, { k: 'desc', l: 'Tanım', text: true, w: 150 },
     { k: 'beh', l: 'Davranış', opts: ['Kohezyonsuz', 'Kohezyonlu', 'Kaya'] }, { k: 'gn', l: 'γn', u: 'kN/m³', w: 46 }, { k: 'gsat', l: 'γsat', u: 'kN/m³', w: 46 },
     { k: 'phi', l: "φ'", u: '°', w: 40 }, { k: 'c', l: "c'", u: 'kPa', w: 40 }, { k: 'cu', l: 'cu', u: 'kPa', w: 46 }, { k: 'Es', l: 'Es', u: 'MPa', w: 46, tip: 'Statik elastisite modülü (dinamik değil)' },
     { k: 'nu', l: 'ν', w: 40 }, { k: 'mv', l: 'mv', u: 'm²/kN', w: 62 }, { k: 'Cc', l: 'Cc', w: 40 }, { k: 'e0', l: 'e0', w: 40 }, { k: 'pi', l: 'PI', u: '%', w: 40 }, { k: 'fines', l: 'İDO', u: '%', w: 40, tip: 'İnce dane oranı (#200 geçen)' }
   ];
+
+  // Zemin türü kütüphanesi kartı
+  let libKey = null;
+  function libCard() {
+    const key = libKey || GSOIL.keyOf(P.layers[0]), e = GSOIL.BY[key], st = GSOIL.statesFor(key);
+    const rows = st.map(x => { const t = GSOIL.typical(key, x); return [x, t.beh, t.gn, t.gsat, t.phi, t.c, t.cu || '–', t.Es, t.nu, t.mv ? t.mv.toExponential(1) : '–', t.e0]; });
+    // SPT'ye göre öneri
+    const sug = P.layers.map((Lr, i) => {
+      const fam = GSOIL.famOf(GSOIL.keyOf(Lr)); if (fam === 'RK' || !R || !R.spt) return null;
+      const ns = R.spt.rows.filter(d => d.z >= Lr.top && d.z < Lr.bottom && d.Nraw < 50).map(d => d.Nraw); if (!ns.length) return null;
+      const m = ns.reduce((a, b) => a + b, 0) / ns.length, sg = GSOIL.stateFromN(fam, m);
+      return [i + 1, GSOIL.label(Lr) + ' ' + Lr.top + '–' + Lr.bottom + ' m', ns.length, r(m, 1), sg, Lr.durum === sg ? '✔' : (Lr.durum ? 'seçilen: ' + Lr.durum.replace(/\s*\(.*\)/, '') : '–')];
+    }).filter(Boolean);
+    return `<div class="card"><h3>Zemin ve kaya türü kütüphanesi</h3><p class="hint">Tarama ve sınıflar Tebliğ (2019) EK-5 / EK-6 ve TS ISO 710'a göredir. Yönetmelikler sayısal parametre vermez; tablodaki değerler literatürdeki tipik aralıkların ortasıdır ve yalnızca ön tahmindir.</p>
+      <div class="libhead"><select class="in" id="libSel">${GSOIL.GROUPS.map(g => `<optgroup label="${g}">${GSOIL.LIST.filter(x => x.grp === g).map(x => `<option value="${x.key}" ${x.key === key ? 'selected' : ''}>${x.ad} (${x.code})</option>`).join('')}</optgroup>`).join('')}</select>${GDRAW.swatch(key)}<span><b>${e.code}</b> · ${e.ad}<br><small>${e.grp} · varsayılan durum: ${e.def}</small></span></div>
+      ${htable(['Durum', 'Davranış', 'γ<sub>n</sub>', 'γ<sub>doy</sub>', "φ' (°)", "c' (kPa)", 'c<sub>u</sub> (kPa)', 'E<sub>s</sub> (MPa)', 'ν', 'm<sub>v</sub> (m²/kN)', 'e<sub>0</sub>'], rows)}
+      ${sug.length ? `<h4>SPT'ye göre durum önerisi (Tebliğ EK-5, arazi N ortalaması)</h4>${htable(['No', 'Tabaka', 'SPT sayısı', 'Ort. N (arazi)', 'Öneri', 'Durum'], sug)}` : ''}
+      <details><summary>Kaynaklar</summary><ul class="src">${GSOIL.SOURCES.map(x => `<li>${x}</li>`).join('')}</ul></details></div>`;
+  }
 
   function inputs() {
     const F = P.found;
@@ -126,7 +149,7 @@
           field('etut.masw', 'MASW/ReMi ölçüm', 'adet'), field('etut.hydro', 'Hidrojeoloji', 'adet'), field('etut.wn', 'Su muhtevası deneyi', 'adet'), field('etut.gn', 'Birim hacim ağırlık deneyi', 'adet'), field('etut.gs', 'Özgül ağırlık deneyi', 'adet'),
           field('etut.sieve', 'Elek analizi', 'adet'), field('etut.atterberg', 'Kıvam limitleri', 'adet'), field('etut.shear', 'Kesme kutusu', 'adet'), field('etut.ucs', 'Serbest basınç', 'adet'), field('etut.uu', 'Üç eksenli (UU)', 'adet'), field('etut.oedo', 'Ödometre', 'adet')],
           'Mavi kutular girdi, turuncu kutular varsayılanı ezen tasarım kararı. Her değişiklikte tüm hesap yeniden yapılır. Bu sayfadaki bilgiler Word raporunun kapak, giriş, saha, yapı ve etüt bölümlerine yazılır.');
-      case 'profil': return `<div class="card"><h3>İdealize zemin profili</h3><p class="hint">Sondaj loguna ve laboratuvara göre tasarım tabakaları. Es statik modüldür; MASW'den gelen dinamik E kullanmayın. Kohezyonlu tabakada oturma için m<sub>v</sub> veya C<sub>c</sub>/e<sub>0</sub> girin.</p>${tableEditor('layers', LAYER_COLS, P.layers)}</div>`;
+      case 'profil': return `<div class="card"><h3>İdealize zemin profili</h3><p class="hint">Sondaj loguna ve laboratuvara göre tasarım tabakaları. Es statik modüldür; MASW'den gelen dinamik E kullanmayın. Kohezyonlu tabakada oturma için m<sub>v</sub> veya C<sub>c</sub>/e<sub>0</sub> girin.</p>${tableEditor('layers', LAYER_COLS, P.layers)}<p class="hint">Zemin / kaya türü ve sıkılık–kıvam–ayrışma seçildiğinde tipik parametreler otomatik yüklenir (<span class="typ">sarı</span> hücreler). Deney sonucunu yazdığınız hücre tipik değer olmaktan çıkar.</p></div>${libCard()}`;
       case 'spt': return grid('SPT ekipmanı', [field('spt.equip.CE', 'Enerji C<sub>E</sub>', '', { tip: 'Halat-makara ≈ 0.75–0.83, otomatik ≈ 1.0–1.3' }), field('spt.equip.CB', 'Kuyu çapı C<sub>B</sub>', '', { tip: '65–115 mm: 1.0; 150 mm: 1.05; 200 mm: 1.15' }), field('spt.equip.CS', 'Numune alıcı C<sub>S</sub>', ''), field('spt.equip.rodExtra', 'Yüzey üstü tij', 'm', { tip: 'Tij boyu = derinlik + bu değer' })]) +
         `<div class="card"><h3>SPT verisi</h3><p class="hint">Ret (R) için 50 girin. Arazi N değeri (son 30 cm).</p>${tableEditor('spt.data', [{ k: 'z', l: 'Derinlik', u: 'm' }, { k: 'N', l: 'N', u: 'darbe' }], P.spt.data)}</div>`;
       case 'zemin': return `<div class="card"><h3>Vs profili (MASW / kuyu içi)</h3>${tableEditor('vs', [{ k: 'top', l: 'Üst', u: 'm' }, { k: 'bottom', l: 'Alt', u: 'm' }, { k: 'vs', l: 'Vs', u: 'm/s' }], P.vs)}<p class="hint">Son tabaka Df + 30 m'ye kadar uzatılır.</p></div>`;
@@ -136,7 +159,7 @@
       case 'temel': return grid('Temel geometrisi', [field('found.type', 'Temel tipi', '', { opts: ['Radye', 'Sürekli', 'Tekil'] }), field('found.B', 'B (kısa kenar)', 'm'), field('found.L', 'L (uzun kenar)', 'm'), field('found.Df', 'Temel derinliği D<sub>f</sub>', 'm', { tip: 'Doğal zeminden temel tabanına; bodrum varsa kazı tabanı' }), field('found.t', 'Temel kalınlığı', 'm')]) +
         `<div class="card"><h3>Yük kombinasyonları (temel tabanında)</h3><p class="hint">Statik analizden: N düşey, M<sub>B</sub> B yönünde dışmerkezlik yaratan moment (e<sub>B</sub> = M<sub>B</sub>/N), H yatay kuvvet.</p>${tableEditor('loads.combos', [{ k: 'name', l: 'Kombinasyon', text: true, w: 100 }, { k: 'seismic', l: 'Depremli', opts: ['Hayır', 'Evet'] }, { k: 'N', l: 'N', u: 'kN', w: 70 }, { k: 'MB', l: 'M<sub>B</sub>', u: 'kNm', w: 70 }, { k: 'ML', l: 'M<sub>L</sub>', u: 'kNm', w: 70 }, { k: 'HB', l: 'H<sub>B</sub>', u: 'kN', w: 60 }, { k: 'HL', l: 'H<sub>L</sub>', u: 'kN', w: 60 }], P.loads.combos)}<div class="grid">${field('loads.Nserv', 'Servis yükü N<sub>G+Q</sub> (oturma için)', 'kN', { wide: true })}</div></div>`;
       case 'tasima': return grid('Tasarım parametresi seçimi', [field('bear.type', 'Analiz', '', { opts: [['', 'Otomatik (taban tabakasına göre)'], 'Drenajlı', 'Drenajsız'], over: true }), field('bear.phi', "φ' (tasarım)", '°', { over: true, ph: 'tabaka: ' + R.design.layer.phi }), field('bear.c', "c' (tasarım)", 'kPa', { over: true, ph: 'tabaka: ' + R.design.layer.c }), field('bear.cu', 'c<sub>u</sub> (tasarım)', 'kPa', { over: true, ph: 'tabaka: ' + R.design.layer.cu })],
-        `Boş bırakılırsa temel tabanındaki tabakanın (${R.design.layer.uscs}) değeri alınır. Kırılma kaması daha zayıf bir tabakaya giriyorsa onun değerini girin.`);
+        `Boş bırakılırsa temel tabanındaki tabakanın (${GSOIL.label(R.design.layer)}) değeri alınır. Kırılma kaması daha zayıf bir tabakaya giriyorsa onun değerini girin.`);
       case 'kayma': return grid('Kayma parametreleri', [field('slide.tand', 'tanδ (taban–zemin)', '', { tip: 'TBDY Tablo 16.3 (üst sınır): yerinde dökme beton – sıkıştırılmış taban 0.6; önüretimli beton 0.4; beton – beton 0.5; beton – taban kayası 0.5' }), field('slide.usePassive', 'Pasif direnci kullan (0.3·R<sub>pt</sub>)', '', { check: true })]);
       case 'oturma': return grid('Oturma parametreleri', [field('sett.zmaxFactor', 'Analiz derinliği', '× B'), field('sett.rig', 'Rijitlik düzeltmesi', '', { tip: 'Esnek merkez = 1.0; rijit radye ≈ 0.8' }), field('sett.allow', 'İzin verilen oturma', 'mm'), field('sett.tYear', 'Schmertmann süre t', 'yıl')]);
       case 'sisme': return grid('Şişme', [field('swell.zone', 'Aktif zon (tabandan)', 'm', { tip: 'Ankara için tipik 2–3 m' })]);
@@ -149,8 +172,8 @@
     switch (page) {
       case 'proje': return `<div class="card"><h3>Proje özeti</h3>${htable(['Büyüklük', 'Değer'], [['Temel alanı', r(R.etut.area, 1) + ' m²'], ['Gereken sondaj sayısı (≥)', R.etut.nReq], ['Gereken sondaj derinliği (≥)', r(R.etut.dReq, 1) + ' m (doğal zeminden)'], ['Zemin sınıfı', R.zs], ['S<sub>DS</sub> / S<sub>D1</sub>', r(R.sp.SDS, 3) + ' / ' + r(R.sp.SD1, 3)]])}<p class="hint">Ayrıntı: 11. sayfa (TBDY Ek 16A, Tebliğ 7.2.2).</p></div>`;
       case 'profil': {
-        const used = [...new Set(P.layers.map(l => l.uscs))];
-        return `<div class="card">${fig(GDRAW.soilColumn(P, R, { w: 700, h: 560 }), 'Şekil — İdealize zemin profili, temel tabanı ve SPT değerleri. Desenler USCS sınıfına göre.')}</div><div class="card"><h3>Tarama lejantı</h3>${GDRAW.legend(used)}<details><summary>Tüm desenler</summary>${GDRAW.legend(GDRAW.USCS)}</details></div>`;
+        const used = P.layers;
+        return `<div class="card">${fig(GDRAW.soilColumn(P, R, { w: 700, h: 560 }), 'Şekil — İdealize zemin profili, temel tabanı ve SPT değerleri. Taramalar Tebliğ (2019) EK-6 lejantına göre.')}</div><div class="card"><h3>Tarama lejantı</h3>${GDRAW.legend(used)}<details><summary>Tüm desenler (${GSOIL.LIST.length})</summary>${GSOIL.GROUPS.map(g => `<h4>${g}</h4>` + GDRAW.legend(GSOIL.LIST.filter(e => e.grp === g).map(e => e.key))).join('')}</details></div>`;
       }
       case 'spt': return `<div class="card two"><div>${fig(GDRAW.sptChart(R, { w: 420, h: 400 }), 'N, N60, N1,60 ve N1,60f')}</div><div>${sptSteps()}</div></div><div class="card"><h3>Düzeltme tablosu</h3>${htable(['z (m)', 'Tabaka', 'N', "σ'v (kPa)", 'C<sub>R</sub>', 'N<sub>60</sub>', 'C<sub>N</sub>', 'N<sub>1,60</sub>', 'İDO %', 'N<sub>1,60f</sub>', 'h<sub>30</sub> (m)'], R.spt.rows.map(d => [d.z, d.uscs, d.Nraw >= 50 ? '50 (R)' : d.Nraw, r(d.se, 1), d.CR, r(d.N60, 1), r(d.CN, 3), r(d.N160, 1), r(d.fines, 0), r(d.N160f, 1), d.h30 != null ? r(d.h30, 2) : '–']))}<p class="hint">(N60)30 = ${r(R.spt.N30, 1)} — her SPT, komşu deney noktalarının ortasına kadar temsil eder; son değer Df + 30 m'ye uzatılır.</p></div>`;
       case 'zemin': {
@@ -234,11 +257,28 @@
     const el = e.target; if (!el.dataset || !el.dataset.p) return;
     let v = el.dataset.bool ? el.checked : el.dataset.num ? num(el.value) : el.value;
     if (el.tagName === 'SELECT' && el.dataset.num) v = +v;
+    if (el.id === 'libSel') return;
+    const mz = el.dataset.p.match(/^layers\.(\d+)\.(zt|durum)$/);
+    if (mz) {
+      const Lr = P.layers[+mz[1]], before = clone(Lr);
+      set(P, el.dataset.p, v);
+      if (mz[2] === 'zt' && !GSOIL.statesFor(v).includes(Lr.durum)) Lr.durum = '';
+      if (Lr.durum || mz[2] === 'zt') { GSOIL.apply(Lr); toast(`Tabaka ${+mz[1] + 1}: ${GSOIL.nameOf(Lr)} – ${Lr.durum} için tipik değerler yüklendi.`, () => { P.layers[+mz[1]] = before; recompute(); renderPage(); }); }
+      libKey = Lr.zt; recompute(); renderPage(); return;
+    }
     set(P, el.dataset.p, v);
+    const mt = el.dataset.p.match(/^layers\.(\d+)\.(\w+)$/);
+    if (mt && Array.isArray(P.layers[+mt[1]].tip) && P.layers[+mt[1]].tip.includes(mt[2])) { P.layers[+mt[1]].tip = P.layers[+mt[1]].tip.filter(k => k !== mt[2]); el.removeAttribute('data-typ'); el.removeAttribute('title'); }
     // tabaka sınırlarını bağla
     const m = el.dataset.p.match(/^layers\.(\d+)\.bottom$/); if (m && P.layers[+m[1] + 1]) { P.layers[+m[1] + 1].top = v; const n = document.querySelector(`[data-p="layers.${+m[1] + 1}.top"]`); if (n) n.value = v; }
     const m2 = el.dataset.p.match(/^vs\.(\d+)\.bottom$/); if (m2 && P.vs[+m2[1] + 1]) { P.vs[+m2[1] + 1].top = v; const n = document.querySelector(`[data-p="vs.${+m2[1] + 1}.top"]`); if (n) n.value = v; }
     if (recompute()) { if (page === 'tasima' || page === 'deprem') { const a = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.p : null; $('#inputs').innerHTML = inputs(); if (a) { const n = document.querySelector(`[data-p="${a}"]`); if (n) n.focus(); } } renderOutputs(); }
+  }
+  function toast(msg, undo) {
+    let t = document.getElementById('toast'); if (!t) { t = document.createElement('div'); t.id = 'toast'; document.body.appendChild(t); }
+    t.innerHTML = `<span>${msg}</span>${undo ? '<button>Geri al</button>' : ''}`; t.className = 'show';
+    if (undo) t.querySelector('button').onclick = () => { undo(); t.className = ''; };
+    clearTimeout(toast.h); toast.h = setTimeout(() => { t.className = ''; }, 7000);
   }
   function onClick(e) {
     const t = e.target;
@@ -289,6 +329,7 @@
     $('#nav').innerHTML = PAGES.map(p => `<li data-pg="${p.id}"><span class="pn">${p.n}</span>${p.t}<span class="dot"></span></li>`).join('');
     $('#nav').onclick = e => { const li = e.target.closest('li'); if (li) { page = li.dataset.pg; renderPage(); window.scrollTo(0, 0); } };
     $('#main').addEventListener('change', onChange);
+    $('#main').addEventListener('change', e => { if (e.target.id === 'libSel') { libKey = e.target.value; const c = e.target.closest('.card'); if (c) c.outerHTML = libCard(); } });
     $('#main').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') e.target.dispatchEvent(new Event('change', { bubbles: true })); });
     $('#main').addEventListener('click', onClick);
     $('#bNew').onclick = () => { if (confirm('Yeni boş proje açılsın mı? Kaydedilmemiş değişiklikler kaybolur.')) { P = normalize(BLANK()); recompute(); page = 'proje'; renderPage(); } };

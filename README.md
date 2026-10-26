@@ -19,6 +19,7 @@ GeoHesap, TBDY 2018 Bölüm 16 ve Zemin ve Temel Etüdü Uygulama Esasları ve R
 
 - TBDY tasarım spektrumu, DTS ve BYS
 - Yerel zemin sınıfı, SPT ve Vs değerlendirmeleri
+- 73 kayıt içeren zemin/kaya kütüphanesi, tipik parametreler ve sondaj logu taramaları
 - Taşıma gücü ve taban basıncı
 - Kayma güvenliği
 - Elastik, konsolidasyon ve Schmertmann oturması

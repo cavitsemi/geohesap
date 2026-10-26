@@ -4,69 +4,42 @@
   const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const f1 = x => (Math.round(x * 10) / 10).toString();
 
-  // ---------------- Tarama desenleri (TS ISO 710 / USCS mantığı) ----------------
-  const USCS = ['GW', 'GP', 'GM', 'GC', 'SW', 'SP', 'SM', 'SC', 'ML', 'CL', 'OL', 'MH', 'CH', 'OH', 'Pt', 'CL-ML', 'SM-SC', 'GC-GM', 'ROCK', 'FILL'];
-  const COLOR = { G: '#f0c08c', S: '#f7e39c', M: '#dcd6c4', C: '#bfcf9f', O: '#9fb27a', P: '#8a9a63', R: '#b9bdc4', F: '#e8c0cc' };
-  const NAME = { GW: 'İyi derecelenmiş çakıl', GP: 'Kötü derecelenmiş çakıl', GM: 'Siltli çakıl', GC: 'Killi çakıl', SW: 'İyi derecelenmiş kum', SP: 'Kötü derecelenmiş kum', SM: 'Siltli kum', SC: 'Killi kum', ML: 'Düşük plastisiteli silt', CL: 'Düşük plastisiteli kil', OL: 'Organik silt/kil (düşük)', MH: 'Yüksek plastisiteli silt', CH: 'Yüksek plastisiteli kil', OH: 'Organik kil (yüksek)', Pt: 'Turba', 'CL-ML': 'Siltli kil', 'SM-SC': 'Siltli-killi kum', 'GC-GM': 'Siltli-killi çakıl', ROCK: 'Kaya', FILL: 'Dolgu' };
+  // ---------------- Tarama desenleri (Tebliğ 2019 EK-6 / TS ISO 710; katalog: soils.js) ----------------
+  const USCS = ['GW', 'GP', 'GM', 'GC', 'GW-GM', 'GP-GM', 'GW-GC', 'GP-GC', 'GC-GM', 'SW', 'SP', 'SM', 'SC', 'SW-SM', 'SP-SM', 'SW-SC', 'SP-SC', 'SM-SC', 'ML', 'CL', 'CL-ML', 'OL', 'MH', 'CH', 'OH', 'Pt', 'ROCK', 'FILL'];
+  const NAME = {}; GSOIL.LIST.forEach(e => { if (!NAME[e.uscs]) NAME[e.uscs] = e.ad; }); NAME.ROCK = 'Kaya'; NAME.FILL = 'Dolgu';
   const ink = '#3a3a3a';
-  function prim(t, x, y, heavy) {
-    const sw = heavy ? 1.4 : 0.9;
-    switch (t) {
-      case 'G': return `<circle cx="${x}" cy="${y}" r="3.1" fill="none" stroke="${ink}" stroke-width="0.9"/>`;
-      case 'S': return `<circle cx="${x - 2.5}" cy="${y - 1.5}" r="0.9" fill="${ink}"/><circle cx="${x + 2.5}" cy="${y - 1}" r="0.9" fill="${ink}"/><circle cx="${x}" cy="${y + 2.2}" r="0.9" fill="${ink}"/>`;
-      case 'M': return `<path d="M${x - 2} ${y - 3}v6M${x + 2} ${y - 3}v6" stroke="${ink}" stroke-width="${sw}"/>`;
-      case 'C': return `<path d="M${x - 4} ${y - 1.6}h8M${x - 4} ${y + 1.6}h8" stroke="${ink}" stroke-width="${sw}"/>`;
-      case 'O': case 'P': return `<path d="M${x - 3} ${y + 2}l1.5 -4l1.5 4M${x} ${y + 2}l1.5 -4l1.5 4" fill="none" stroke="${ink}" stroke-width="0.8"/><path d="M${x - 4} ${y + 2}h8" stroke="${ink}" stroke-width="0.8"/>`;
-    }
-    return '';
-  }
-  function patternFor(code) {
-    const id = 'h-' + code.replace(/[^A-Za-z]/g, '');
-    const P1 = [[6, 6], [18, 18]], P2 = [[18, 6], [6, 18]];
-    let body = '', bg;
-    if (code === 'ROCK') {
-      bg = COLOR.R;
-      body = `<path d="M0 0.5h24M0 12.5h24M0.5 0v12M12.5 12v12" stroke="${ink}" stroke-width="0.9" fill="none"/>`;
-    } else if (code === 'FILL') {
-      bg = COLOR.F;
-      body = [[6, 6], [18, 18], [18, 6], [6, 18]].map(([x, y]) => `<path d="M${x - 3} ${y - 3}l6 6M${x + 3} ${y - 3}l-6 6" stroke="${ink}" stroke-width="0.9"/>`).join('');
-    } else if (code === 'Pt') {
-      bg = COLOR.P; body = [...P1, ...P2].map(([x, y]) => prim('O', x, y)).join('');
-    } else if (code.includes('-')) {
-      const [a, b] = code.split('-');
-      bg = COLOR[a[0]];
-      body = P1.map(([x, y]) => prim(a[0], x, y)).join('') + prim(a[1], 18, 6) + prim(b[1], 6, 18);
-    } else {
-      const a = code[0], b = code[1];
-      bg = COLOR[a];
-      if (b === 'W' || b === 'P' || b === 'L' || b === 'H') {
-        const heavy = b === 'H';
-        const pos = b === 'P' ? P1 : [...P1, ...P2];
-        body = pos.map(([x, y]) => prim(a, x, y, heavy)).join('');
-        if (a === 'O') body = P1.map(([x, y]) => prim('O', x, y)).join('') + P2.map(([x, y]) => prim(b === 'H' ? 'C' : 'M', x, y)).join('');
-      } else {
-        body = P1.map(([x, y]) => prim(a, x, y)).join('') + P2.map(([x, y]) => prim(b, x, y)).join('');
-      }
-    }
-    return `<pattern id="${id}" width="24" height="24" patternUnits="userSpaceOnUse"><rect width="24" height="24" fill="${bg}"/>${body}</pattern>`;
-  }
-  const hatchId = code => 'url(#h-' + String(USCS.includes(code) ? code : 'FILL').replace(/[^A-Za-z]/g, '') + ')';
-  const DEFS = '<defs>' + USCS.map(patternFor).join('') +
-    `<marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#1f4e79"/></marker>` +
+  // Her SVG kendi desen tanımlarını taşır (kimlik önekiyle). Aynı kimliğin gizli bir panelde tanımlı olması
+  // (ör. kapalı <details>) tarayıcıda desenin boş görünmesine yol açıyordu.
+  let SEQ = 0;
+  const hatchId = x => 'url(#h-' + GSOIL.keyOf(x) + ')';
+  const STATIC = `<marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#1f4e79"/></marker>` +
     `<marker id="arrR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#b03a2e"/></marker>` +
     `<pattern id="h-conc" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="10" height="10" fill="#d5d8dc"/><path d="M0 10L10 0" stroke="#7f8c8d" stroke-width="0.7"/></pattern>` +
-    `<pattern id="h-eff" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#fbe3d2"/><path d="M0 8L8 0" stroke="#d35400" stroke-width="0.8"/></pattern></defs>`;
-  const svgOpen = (w, h, extra = '') => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" font-family="Segoe UI, Arial, sans-serif" font-size="11" ${extra}><rect width="${w}" height="${h}" fill="#fff"/>${DEFS}`;
+    `<pattern id="h-eff" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#fbe3d2"/><path d="M0 8L8 0" stroke="#d35400" stroke-width="0.8"/></pattern>`;
+  const DEFS = '<defs>' + STATIC + '</defs>';
+  const svgOpen = (w, h, extra = '') => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" font-family="Segoe UI, Arial, sans-serif" font-size="11" ${extra}><rect width="${w}" height="${h}" fill="#fff"/><!--DEFS-->`;
+  function close(s) {
+    const pre = 'g' + (++SEQ) + '-';
+    const keys = [...new Set([...s.matchAll(/url\(#h-([A-Za-z0-9_]+)\)/g)].map(m => m[1]).filter(k => GSOIL.BY[k]))];
+    const defs = '<defs>' + STATIC + keys.map(k => GSOIL.patternDef(k)).join('') + '</defs>';
+    s = s.replace('<!--DEFS-->', defs) + '</svg>';
+    return s.replace(/(url\(#|id=")(arrR|arr|h-[A-Za-z0-9_]+)(?=[)"])/g, '$1' + pre + '$2');
+  }
 
   // ---------------- Desen lejantı ----------------
-  function legend(codes) {
-    const cols = 4, cw = 170, rh = 26, rows = Math.ceil(codes.length / cols);
+  function swatch(key, w = 150, h = 60) {
+    let s = svgOpen(w, h); s += `<rect x="1" y="1" width="${w - 2}" height="${h - 2}" fill="${hatchId(key)}" stroke="${ink}" stroke-width="1"/>`; return close(s);
+  }
+  function legend(items) {
+    const keys = [...new Set((items || []).map(x => GSOIL.keyOf(x)))];
+    const cols = 3, cw = 232, rh = 30, rows = Math.max(1, Math.ceil(keys.length / cols));
     let s = svgOpen(cols * cw, rows * rh + 6);
-    codes.forEach((c, i) => {
-      const x = (i % cols) * cw + 4, y = Math.floor(i / cols) * rh + 4;
-      s += `<rect x="${x}" y="${y}" width="34" height="20" fill="${hatchId(c)}" stroke="${ink}" stroke-width="0.6"/><text x="${x + 40}" y="${y + 9}" font-weight="600">${esc(c)}</text><text x="${x + 40}" y="${y + 20}" font-size="9.5" fill="#555">${esc(NAME[c] || '')}</text>`;
+    keys.forEach((k, i) => {
+      const e = GSOIL.BY[k], x = (i % cols) * cw + 4, y = Math.floor(i / cols) * rh + 4;
+      const nm = e.ad.length > 30 ? e.ad.slice(0, 29) + '…' : e.ad;
+      s += `<rect x="${x}" y="${y}" width="48" height="24" fill="${hatchId(k)}" stroke="${ink}" stroke-width="0.7"/><text x="${x + 54}" y="${y + 10}" font-weight="700">${esc(e.code)}</text><text x="${x + 54}" y="${y + 22}" font-size="9.5" fill="#444">${esc(nm)}</text>`;
     });
-    return s + '</svg>';
+    return close(s);
   }
 
   // ---------------- Zemin profili (sondaj logu tarzı) ----------------
@@ -87,10 +60,10 @@
     P.layers.forEach(L => {
       if (L.top >= dmax) return;
       const y1 = Y(L.top), y2 = Y(L.bottom);
-      s += `<rect x="${x0}" y="${y1}" width="${cw}" height="${y2 - y1}" fill="${hatchId(L.uscs)}" stroke="${ink}" stroke-width="0.8"/>`;
+      s += `<rect x="${x0}" y="${y1}" width="${cw}" height="${y2 - y1}" fill="${hatchId(L)}" stroke="${ink}" stroke-width="0.8"/>`;
       const mid = (y1 + y2) / 2, hh = y2 - y1;
       s += `<path d="M${x0 + cw} ${y2}h210" stroke="#bbb" stroke-dasharray="3 3"/>`;
-      s += `<text x="${x0 + cw + 8}" y="${mid - (hh > 34 ? 8 : 0)}" font-weight="700">${esc(L.uscs)} <tspan font-weight="400">${esc(L.desc || NAME[L.uscs] || '')}</tspan></text>`;
+      s += `<text x="${x0 + cw + 8}" y="${mid - (hh > 34 ? 8 : 0)}" font-weight="700">${esc(GSOIL.label(L))} <tspan font-weight="400">${esc(L.desc || GSOIL.nameOf(L) || '')}</tspan></text>`;
       if (hh > 22) {
         const prm = L.beh === 'Kohezyonlu' ? `γ ${L.gn} · c<tspan font-size="8" dy="2">u</tspan><tspan dy="-2"> ${L.cu}</tspan> · φ' ${L.phi}° · E ${L.Es} MPa` : `γ ${L.gn} · φ' ${L.phi}° · c' ${L.c} · E ${L.Es} MPa`;
         s += `<text x="${x0 + cw + 8}" y="${mid + (hh > 34 ? 7 : 12)}" font-size="10" fill="#444">${prm}</text>`;
@@ -116,7 +89,7 @@
     });
     if (rows.length > 1) s += `<path d="${rows.map((d, i) => (i ? 'L' : 'M') + nx(d.N60) + ' ' + Y(d.z)).join('')}" fill="none" stroke="#1f4e79" stroke-width="1"/>`;
     s += `<text x="${nx(15) + 3}" y="${Y(dmax) - 4}" font-size="9" fill="#e67e22">15</text><text x="${nx(50) + 3}" y="${Y(dmax) - 4}" font-size="9" fill="#e67e22">50</text>`;
-    return s + '</svg>';
+    return close(s);
   }
 
   // ---------------- Temel kesiti + kırılma kaması (Prandtl) ----------------
@@ -145,8 +118,8 @@
     P.layers.forEach(L => {
       if (L.top > spanZ) return;
       const y1 = Y(L.top), y2 = Math.min(Y(L.bottom), H - 30);
-      s += `<rect x="20" y="${y1}" width="${W - 40}" height="${Math.max(0, y2 - y1)}" fill="${hatchId(L.uscs)}" opacity="0.5"/>`;
-      s += `<path d="M20 ${y1}H${W - 20}" stroke="#999" stroke-width="0.6"/><text x="${W - 26}" y="${y1 + 13}" text-anchor="end" font-size="10" font-weight="700" fill="#333">${esc(L.uscs)}</text>`;
+      s += `<rect x="20" y="${y1}" width="${W - 40}" height="${Math.max(0, y2 - y1)}" fill="${hatchId(L)}" opacity="0.5"/>`;
+      s += `<path d="M20 ${y1}H${W - 20}" stroke="#999" stroke-width="0.6"/><text x="${W - 26}" y="${y1 + 13}" text-anchor="end" font-size="10" font-weight="700" fill="#333">${esc(GSOIL.label(L))}</text>`;
     });
     s += `<path d="M20 ${gy}H${W - 20}" stroke="${ink}" stroke-width="1.5"/>`;
     if (P.site.yass < spanZ) s += `<path d="M20 ${Y(P.site.yass)}H${W - 20}" stroke="#2471a3" stroke-dasharray="6 3" stroke-width="1.3"/><text x="26" y="${Y(P.site.yass) - 3}" fill="#2471a3" font-size="10">YASS</text>`;
@@ -186,7 +159,7 @@
     s += `<text x="20" y="20" font-weight="700">${esc(bk.name)} — kırılma mekanizması (Prandtl), φ = ${f1(bk.phi)}°</text>`;
     s += `<text x="20" y="36" font-size="10" fill="#555">I aktif kama (45 + φ/2 = ${f1(45 + phi / 2)}°) · II radyal kesme bölgesi (log-spiral) · III pasif kama (45 − φ/2 = ${f1(45 - phi / 2)}°)</text>`;
     s += `<text x="20" y="${H - 10}" font-size="10" fill="#555">Kırılma yüzeyi tabandan ≈ ${f1(deep)} m derine, yanlara ≈ ${f1(xp)} m uzanır. Bu bölgedeki en zayıf tabaka tasarımı yönetir.${bk.phi < 1 ? ' (φ = 0: drenajsız durumda şematik.)' : ''}</text>`;
-    return s + '</svg>';
+    return close(s);
   }
 
   // ---------------- Plan: etkin alan + taban basıncı ----------------
@@ -206,7 +179,7 @@
     s += `<text x="${X(-F.L / 2)}" y="${Y(-F.B / 2) + 16}" font-size="10">L = ${F.L} m · L' = ${f1(lp * 100) / 100} m</text>`;
     s += `<text transform="translate(${X(-F.L / 2) - 8} ${Y(0)}) rotate(-90)" text-anchor="middle" font-size="10">B = ${F.B} m · B' = ${f1(bp * 100) / 100} m</text>`;
     s += `<text x="${X(-F.L / 2)}" y="${Y(-F.B / 2) + 31}" font-size="10" fill="#b03a2e">e<tspan font-size="8" dy="2">B</tspan><tspan dy="-2"> = ${b.eB.toFixed(3)} m, e</tspan><tspan font-size="8" dy="2">L</tspan><tspan dy="-2"> = ${b.eL.toFixed(3)} m · A' = ${b.Ap.toFixed(1)} m²</tspan></text>`;
-    return s + '</svg>';
+    return close(s);
   }
 
   // ---------------- Genel grafik ----------------
@@ -251,7 +224,7 @@
     // lejant
     const lg = o.series.filter(x => x.name);
     lg.forEach((x, i) => { const lx = m.l + 10 + (o.legendX || 0), ly = m.t + 14 + i * 15 + (o.legendY || 0); s += `<rect x="${lx - 4}" y="${ly - 10}" width="${Math.max(120, x.name.length * 6.3 + 30)}" height="15" fill="#fff" opacity="0.85"/><path d="M${lx} ${ly - 3}h18" stroke="${x.color}" stroke-width="2.2" ${x.dash ? `stroke-dasharray="${x.dash}"` : ''}/><text x="${lx + 24}" y="${ly + 1}" font-size="10">${x.name}</text>`; });
-    return s + '</svg>';
+    return close(s);
   }
 
   function spectrumChart(R, opt = {}) {
@@ -308,7 +281,7 @@
     let s = svgOpen(W, H) + `<text x="10" y="18" font-weight="700">Yatak katsayısı karşılaştırması (t/m³)</text>`;
     items.forEach((it, i) => { const y = 40 + i * 50, v = it[1] / 9.81; s += `<text x="10" y="${y + 18}">${it[0]}</text><rect x="150" y="${y}" width="${Math.max(2, v / mx * bw)}" height="28" fill="${it[2]}" opacity="0.85"/><text x="${156 + v / mx * bw}" y="${y + 18}" font-weight="600">${Math.round(v)}</text>`; });
     s += `<text x="10" y="${H - 10}" font-size="10" fill="#555">Oran üst/alt = ${R.ks.ratio.toFixed(1)}. Radyeyi iki sınır değerle çözüp zarf alın.</text>`;
-    return s + '</svg>';
+    return close(s);
   }
 
   function pressureDiagram(P, b, opt = {}) {
@@ -323,7 +296,7 @@
     if (e < 0) s += `<g transform="translate(${2 * x0 + Ldim * sc} 0) scale(-1 1)">`; else s += '<g>';
     s += `<path d="${poly}" fill="#fadbd8" stroke="#b03a2e"/></g>`;
     s += `<text x="${x0}" y="${y0 + 120}" font-size="10">q<tspan font-size="8" dy="2">max</tspan><tspan dy="-2"> = ${Math.round(b.qmax)} kPa · q</tspan><tspan font-size="8" dy="2">min</tspan><tspan dy="-2"> = ${Math.round(b.qmin)} kPa · e = ${Math.abs(e).toFixed(3)} m ${Math.abs(e) <= Ldim / 6 ? '≤' : '>'} ${along}/6 = ${(Ldim / 6).toFixed(2)} m</tspan></text>`;
-    return s + '</svg>';
+    return close(s);
   }
 
 
@@ -341,7 +314,7 @@
     // kesit
     const sx = 380, sw = 280, gy = 70, ssc = sw / (F.B * 1.5), fw = F.B * ssc, Df = F.Df * ssc, t = (F.t || 0.6) * ssc, fx = sx + (sw - fw) / 2;
     s += `<text x="${sx + sw / 2}" y="22" text-anchor="middle" font-weight="700">TEMEL KESİTİ</text>`;
-    s += `<rect x="${sx}" y="${gy}" width="${sw}" height="${H - gy - 20}" fill="${hatchId(P.layers[0].uscs)}" opacity="0.45"/>`;
+    s += `<rect x="${sx}" y="${gy}" width="${sw}" height="${H - gy - 20}" fill="${hatchId(P.layers[0])}" opacity="0.45"/>`;
     s += `<rect x="${fx}" y="${gy}" width="${fw}" height="${Df}" fill="#fff"/>`;
     s += `<path d="M${sx} ${gy}H${fx}M${fx + fw} ${gy}H${sx + sw}" stroke="${ink}" stroke-width="1.4"/>`;
     s += `<rect x="${fx}" y="${gy + Df - t}" width="${fw}" height="${t}" fill="url(#h-conc)" stroke="${ink}" stroke-width="1.3"/>`;
@@ -349,7 +322,7 @@
     s += `<path d="M${fx - 12} ${gy + Df - t}V${gy + Df}" stroke="#1f4e79" marker-start="url(#arr)" marker-end="url(#arr)"/><text x="${fx - 16}" y="${gy + Df - t / 2 + 4}" text-anchor="end" fill="#1f4e79">h = ${F.t || 0.6} m</text>`;
     s += `<path d="M${fx} ${gy + Df + 22}H${fx + fw}" stroke="#1f4e79" marker-start="url(#arr)" marker-end="url(#arr)"/><text x="${fx + fw / 2}" y="${gy + Df + 38}" text-anchor="middle" fill="#1f4e79">L<tspan font-size="8" dy="2">x</tspan><tspan dy="-2"> = ${F.B} m</tspan></text>`;
     if (P.site.yass < F.Df + 6) { const y = gy + P.site.yass * ssc; if (y < H - 24) s += `<path d="M${sx} ${y}H${sx + sw}" stroke="#2471a3" stroke-dasharray="6 3"/><text x="${sx + 4}" y="${y - 3}" fill="#2471a3" font-size="10">YASS</text>`; }
-    return s + '</svg>';
+    return close(s);
   }
 
   // ---------------- Yük şeması ----------------
@@ -357,7 +330,7 @@
     const W = opt.w || 520, H = opt.h || 260;
     let s = svgOpen(W, H);
     const fx = 150, fw = 220, fy = 140, ft = 34;
-    s += `<rect x="40" y="${fy + ft}" width="${W - 80}" height="${H - fy - ft - 10}" fill="${hatchId(P.layers[0].uscs)}" opacity="0.4"/>`;
+    s += `<rect x="40" y="${fy + ft}" width="${W - 80}" height="${H - fy - ft - 10}" fill="${hatchId(P.layers[0])}" opacity="0.4"/>`;
     s += `<rect x="${fx}" y="${fy}" width="${fw}" height="${ft}" fill="url(#h-conc)" stroke="${ink}" stroke-width="1.4"/>`;
     s += `<text x="${fx + fw / 2}" y="${fy + 22}" text-anchor="middle" font-weight="700">W<tspan font-size="8" dy="2">t</tspan></text>`;
     s += `<path d="M${fx + fw / 2} ${fy - 80}V${fy - 2}" stroke="#b03a2e" stroke-width="2.4" marker-end="url(#arrR)"/><text x="${fx + fw / 2 + 8}" y="${fy - 62}" fill="#b03a2e" font-weight="700">N (P<tspan font-size="8" dy="2">tv</tspan><tspan dy="-2">)</tspan></text>`;
@@ -365,8 +338,8 @@
     s += `<path d="M${fx + fw / 2 - 40} ${fy - 30} A 44 30 0 0 1 ${fx + fw / 2 + 40} ${fy - 30}" fill="none" stroke="#1f4e79" stroke-width="2" marker-end="url(#arr)"/><text x="${fx + fw / 2 + 48}" y="${fy - 30}" fill="#1f4e79" font-weight="700">M</text>`;
     for (let i = 0; i <= 10; i++) { const x = fx + fw * i / 10; s += `<path d="M${x} ${fy + ft + 34}V${fy + ft + 4}" stroke="#117a65" marker-end="url(#arr)"/>`; }
     s += `<text x="${fx + fw + 10}" y="${fy + ft + 26}" fill="#117a65" font-weight="700">q<tspan font-size="8" dy="2">o</tspan><tspan dy="-2"> (taban basıncı)</tspan></text>`;
-    return s + '</svg>';
+    return close(s);
   }
 
-  root.GDRAW = { DEFS, USCS, NAME, legend, soilColumn, bearingSection, planEffective, chart, spectrumChart, vsChart, sptChart, settChart, cumSettChart, izChart, ksBars, pressureDiagram, hatchId, foundationSchematic, loadSchematic };
+  root.GDRAW = { swatch, DEFS, USCS, NAME, legend, soilColumn, bearingSection, planEffective, chart, spectrumChart, vsChart, sptChart, settChart, cumSettChart, izChart, ksBars, pressureDiagram, hatchId, foundationSchematic, loadSchematic };
 })(typeof window !== 'undefined' ? window : globalThis);

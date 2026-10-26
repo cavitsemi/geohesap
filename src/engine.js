@@ -2,6 +2,7 @@
    Excel aracı v1.3 ile aynı bağıntılar. Birimler: m, kN, kPa, MPa (Es), m²/kN (mv). */
 (function (root) {
   'use strict';
+  const lab = L => (typeof GSOIL !== 'undefined' && GSOIL.label(L)) || L.uscs;
   const D2R = Math.PI / 180;
   const r = (x, n = 2) => (x === null || x === undefined || !isFinite(x)) ? '–' : Number(x).toFixed(n);
   const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
@@ -49,7 +50,7 @@
       const N60 = N * eq.CE * eq.CB * eq.CS * CR;
       const N160 = CN * N60;
       const [a, b] = finesAB(L.fines || 0);
-      return { crOut: d.z + eq.rodExtra < 3, z: d.z, Nraw: d.N, N, layer: li, uscs: L.uscs, sv, u, se, CN, CR, N60, N160, alpha: a, beta: b, N160f: a + b * N160, fines: L.fines || 0, pi: L.pi || 0, beh: L.beh };
+      return { crOut: d.z + eq.rodExtra < 3, z: d.z, Nraw: d.N, N, layer: li, uscs: lab(L), sv, u, se, CN, CR, N60, N160, alpha: a, beta: b, N160f: a + b * N160, fines: L.fines || 0, pi: L.pi || 0, beh: L.beh };
     });
     // (N60)30 — temel tabanından 30 m, her SPT komşularına yarı mesafe
     const Df = P.found.Df, zEnd = Df + 30;
@@ -258,7 +259,7 @@
         // tabakanın kendi drenaj durumu: drenajsız tasarımda kohezyonlu tabaka c_u ile, kohezyonsuz/kaya tabaka φ', c' ile
         const u = undr && Lr.beh === 'Kohezyonlu' && Lr.cu > 0;
         const o = { B: F.B, L: F.L, Df, N: cb.N, MB: cb.MB, ML: cb.ML, HB: cb.HB, HL: cb.HL, phi: Lr.phi, c: Lr.c, cu: Lr.cu, undrained: u, q: u ? svDf : seDf, gam: gammaForNg(P, Bpc) };
-        const b = bearingCore(o); return { uscs: Lr.uscs, top: Lr.top, bottom: Lr.bottom, phi: Lr.phi, c: Lr.c, cu: Lr.cu, undrained: u, qk: b.qk };
+        const b = bearingCore(o); return { uscs: lab(Lr), top: Lr.top, bottom: Lr.bottom, phi: Lr.phi, c: Lr.c, cu: Lr.cu, undrained: u, qk: b.qk };
       });
       R.screenDepth = depthEff;
       const lowest = R.screen.reduce((a, s) => (!a || s.qk < a.qk ? s : a), null);
@@ -320,7 +321,7 @@
       if (Lr.beh === 'Kohezyonlu') co = Lr.mv > 0 ? Lr.mv * ds * dz * 1000 : (Lr.Cc > 0 ? Lr.Cc / (1 + Lr.e0) * dz * Math.log10((se + ds) / se) * 1000 : 0);
       Sel += el; Scon += co; sDs += ds * dz; if (Lr.Es > 0) sDsE += ds * dz / Lr.Es;
       if (z10 === null && ds / se <= 0.1) z10 = zb;
-      prof.push({ zb, z, ds, se, s10: 0.1 * se, el, co, uscs: Lr.uscs, li });
+      prof.push({ zb, z, ds, se, s10: 0.1 * se, el, co, uscs: lab(Lr), li });
       if (z10n === null && ds <= 0.1 * qnet) z10n = zb;
     }
     // 16A.1.4: Δσ = 0.10σ'vo ve Δσ = 0.10 q_net kesişimi — oturma derinliğinden bağımsız arama
@@ -358,16 +359,17 @@
     if (R.ks.ratio > 3) R.warn.push(`Yatak katsayısı yöntemleri ${r(R.ks.ratio, 1)} kat farklı: tek değer yerine zarf analizi öner.`);
 
     // --- Şişme (Seed vd. 1962), aktif zon
-    R.swell = P.layers.filter(Lr => Lr.top < Df + P.swell.zone && Lr.bottom > Df && Lr.pi > 0).map(Lr => { const S = 60 * 3.6e-5 * Math.pow(Lr.pi, 2.44); return { uscs: Lr.uscs, pi: Lr.pi, S, cls: S < 1.5 ? 'Düşük' : S < 5 ? 'Orta' : S < 25 ? 'Yüksek' : 'Çok yüksek' }; });
+    R.swell = P.layers.filter(Lr => Lr.top < Df + P.swell.zone && Lr.bottom > Df && Lr.pi > 0).map(Lr => { const S = 60 * 3.6e-5 * Math.pow(Lr.pi, 2.44); return { uscs: lab(Lr), pi: Lr.pi, S, cls: S < 1.5 ? 'Düşük' : S < 5 ? 'Orta' : S < 25 ? 'Yüksek' : 'Çok yüksek' }; });
     const smax = R.swell.reduce((a, b) => (b.S > a ? b.S : a), 0);
     step('sisme', { t: 'Şişme potansiyeli', f: 'S (%) = 60·3.6·10<sup>−5</sup>·PI<sup>2.44</sup>', s: R.swell.length ? R.swell.map(x => `${x.uscs}: PI ${r(x.pi, 1)} → %${r(x.S, 1)} ${x.cls}`).join(' · ') : 'Aktif zonda plastik tabaka yok', v: smax, u: '%', src: 'Seed, Woodward, Lundgren (1962)', why: 'Hafif yapılarda taban basıncı şişme basıncını dengeleyemez.' });
     if (smax >= 1.5) { R.warn.push(`Şişme potansiyeli ${smax < 5 ? 'orta' : 'yüksek'} (%${r(smax, 1)}): şişme deneyi, granüler dolgu ve çevre drenajı öner.`); }
     R.checks.push({ mod: 'sisme', t: 'Şişme', ok: smax < 1.5 ? true : null, v: `%${r(smax, 1)}` });
 
     // --- Yönetmelik uyarıları
+    { const tl = P.layers.map((Lr, i) => (Array.isArray(Lr.tip) && Lr.tip.length) ? (i + 1) : 0).filter(Boolean); if (tl.length) R.warn.push(`${tl.join(', ')} no'lu tabaka(lar)da bazı parametreler kütüphanedeki tipik değerlerdir (ön tahmin). Arazi ve laboratuvar deneyleriyle doğrulayın.`); R.typLayers = tl; }
     { const dn = parseInt(sp.DTS, 10);
       const liqLayers = P.layers.filter(L => L.bottom > P.site.yass && L.top < 20 && L.beh !== 'Kaya' && (L.beh === 'Kohezyonsuz' || (L.pi || 0) < 12));
-      R.liq = { needed: P.site.yass < 20 && liqLayers.length > 0, mandatory: P.site.yass < 20 && liqLayers.length > 0 && dn <= 2 && ['ZD', 'ZE', 'ZF'].includes(zs), layers: liqLayers.map(L => L.uscs) };
+      R.liq = { needed: P.site.yass < 20 && liqLayers.length > 0, mandatory: P.site.yass < 20 && liqLayers.length > 0 && dn <= 2 && ['ZD', 'ZE', 'ZF'].includes(zs), layers: liqLayers.map(L => lab(L)) };
       if (R.liq.needed) R.warn.push(`YASS ${P.site.yass} m: yüzeyden 20 m içinde su altında kalan kohezyonsuz/düşük plastisiteli tabaka var (${R.liq.layers.join(', ')}). TBDY 16.6 ve Ek 16B'ye göre sıvılaşma değerlendirmesi yapılmalı${R.liq.mandatory ? ' (16.6.1: zorunlu)' : ''}; bu sürüm sıvılaşma hesabı yapmaz.`);
       if ((sp.BYS === 1 && !['ZA', 'ZB'].includes(zs)) || (dn <= 2 && !['ZA', 'ZB', 'ZC'].includes(zs))) R.warn.push(`TBDY 16.8.3.4(b): ${sp.BYS === 1 ? 'yüksek bina (BYS = 1)' : 'DTS ' + sp.DTS} ve ${zs} zeminde yüzeysel temel altında doğrusal olmayan zemin davranışı ile kalıcı şekil değiştirmeler ayrıca hesaplanmalıdır.`);
     }
@@ -408,13 +410,13 @@
     // PS1 Q3 Schmertmann
     const s3 = schmertmannCore({ B: 3, L: 3, qnet: 222.22, q: 34, sz1: 59.5, t: 6, parts: [{ zm: 0.75, dz: 1.5, Es: 25000 }, { zm: 1.75, dz: 0.5, Es: 25000 }, { zm: 3, dz: 2, Es: 22500 }, { zm: 5, dz: 2, Es: 21250 }] });
     add('CE336 PS1 Q3 · Schmertmann (mm)', s3.Se, 25.57, 0.01);
-    // Sentetik spektrum regresyonu
-    const sp = spectrum(1.0, 0.4, 'ZC', 3, 6);
-    add('Sentetik spektrum · SDS (ZC)', sp.SDS, 1.2, 0.002);
-    add('Sentetik spektrum · SD1 (ZC)', sp.SD1, 0.6, 0.002);
-    // Sentetik taşıma gücü regresyonu
-    const rb = bearingCore({ B: 3, L: 4, Df: 1.5, N: 1200, MB: 0, ML: 0, HB: 0, HL: 0, phi: 30, c: 0, q: 27, gam: 18 });
-    add('Sentetik temel · qt (kPa)', rb.qt, 853.205, 0.002);
+    // Spektrum, Yönfaş
+    const sp = spectrum(0.814, 0.2, 'ZC', 3, 6);
+    add('Yönfaş · SDS (ZC)', sp.SDS, 0.977, 0.002);
+    add('Yönfaş · SD1 (ZC)', sp.SD1, 0.300, 0.002);
+    // Yönfaş taşıma gücü (bağımsız hesap, SC φ23 c3)
+    const yb = bearingCore({ B: 10.45, L: 20.35, Df: 0.4, N: 11537, MB: 0, ML: 0, HB: 0, HL: 0, phi: 23, c: 3, q: 7.48, gam: 18.7 });
+    add('Yönfaş · statik qt (kPa)', yb.qt, 467, 0.02);
     return T;
   }
 

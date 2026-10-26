@@ -1,7 +1,7 @@
-﻿Unicode true
+Unicode true
 !include "MUI2.nsh"
 !define APP "GeoHesap"
-!define VER "1.0.0"
+!define VER "1.1.0"
 !define UNINST "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP}"
 Name "${APP} ${VER}"
 OutFile "GeoHesap_Kurulum_${VER}.exe"
